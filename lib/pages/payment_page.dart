@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter/services.dart';
+import 'package:cloud_firestore/cloud_firestore.dart'; // Add this import
 import 'receipt_page.dart';
 
 class PaymentPage extends StatelessWidget {
@@ -17,7 +18,38 @@ class PaymentPage extends StatelessWidget {
     required this.ticketTitle,
   });
 
-  @override
+  // Function to add payment to history collection
+  Future<void> _addToHistory(BuildContext context) async {
+    try {
+      final now = DateTime.now();
+      final ticketID = 'TICK-${now.millisecondsSinceEpoch}'; // Generate unique ticket ID
+
+      await FirebaseFirestore.instance.collection('history').add({
+        'ticketID': ticketID,
+        'timestamp': now,
+        'price': price,
+        'type': ticketType,
+        'title': ticketTitle,
+      });
+
+      // Navigate to receipt page after successful save
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => ReceiptPage(
+            ticketType: ticketType,
+            price: price,
+            ticketTitle: ticketTitle,
+          ),
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error saving payment: $e')),
+      );
+    }
+  }
+    @override
   Widget build(BuildContext context) {
     initializeDateFormatting('id_ID', null);
 
@@ -68,6 +100,7 @@ class PaymentPage extends StatelessWidget {
                     ticketType: ticketType,
                     price: price,
                     ticketTitle: ticketTitle,
+                    onConfirm: () => _addToHistory(context),
                   ),
                 );
               },
@@ -101,6 +134,7 @@ class PaymentPage extends StatelessWidget {
                     ticketType: ticketType,
                     price: price,
                     ticketTitle: ticketTitle,
+                    onConfirm: () => _addToHistory(context),
                   ),
                 );
               },
@@ -120,7 +154,6 @@ class PaymentPage extends StatelessWidget {
       ),
     );
   }
-
   Widget _buildTotalCard() {
     final now = DateTime.now();
     final formattedDate = DateFormat('d MMMM yyyy', 'id_ID').format(now);
@@ -420,16 +453,7 @@ class PaymentPage extends StatelessWidget {
                 ElevatedButton(
                   onPressed: () {
                     Navigator.of(dialogContext).pop();
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => ReceiptPage(
-                          ticketType: ticketType,
-                          price: price,
-                          ticketTitle: ticketTitle,
-                        ),
-                      ),
-                    );
+                    _addToHistory(context);
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF3468E7),
@@ -460,12 +484,14 @@ class QrisPopup extends StatelessWidget {
   final String ticketType;
   final double price;
   final String ticketTitle;
+  final VoidCallback onConfirm;
 
   const QrisPopup({
     super.key,
     required this.ticketType,
     required this.price,
     required this.ticketTitle,
+    required this.onConfirm,
   });
 
   @override
@@ -539,19 +565,7 @@ class QrisPopup extends StatelessWidget {
                   ),
                   padding: const EdgeInsets.symmetric(vertical: 14),
                 ),
-                onPressed: () {
-                  Navigator.pop(context);
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => ReceiptPage(
-                        ticketType: ticketType,
-                        price: price,
-                        ticketTitle: ticketTitle,
-                      ),
-                    ),
-                  );
-                },
+                onPressed: onConfirm,
                 child: const Text(
                   "Konfirmasi Pembayaran",
                   style: TextStyle(
@@ -573,12 +587,14 @@ class CashPopup extends StatelessWidget {
   final String ticketType;
   final double price;
   final String ticketTitle;
+  final VoidCallback onConfirm;
 
   const CashPopup({
     super.key,
     required this.ticketType,
     required this.price,
     required this.ticketTitle,
+    required this.onConfirm,
   });
 
   @override
@@ -652,19 +668,7 @@ class CashPopup extends StatelessWidget {
                   ),
                   padding: const EdgeInsets.symmetric(vertical: 14),
                 ),
-                onPressed: () {
-                  Navigator.pop(context);
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => ReceiptPage(
-                        ticketType: ticketType,
-                        price: price,
-                        ticketTitle: ticketTitle,
-                      ),
-                    ),
-                  );
-                },
+                onPressed: onConfirm,
                 child: const Text(
                   "Konfirmasi Pembayaran",
                   style: TextStyle(

@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
 
 class ReceiptPage extends StatelessWidget {
   final String ticketType; // e.g., "VIP"
@@ -72,7 +75,7 @@ class ReceiptPage extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 16,
                     color: Colors.grey,
-                    ),
+                  ),
                 ),
                 const SizedBox(height: 24),
 
@@ -172,20 +175,7 @@ class ReceiptPage extends StatelessWidget {
                     ),
                     // "Unduh Bukti" button
                     ElevatedButton(
-                      onPressed: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: const Text(
-                                'Bukti pembayaran berhasil di unduh!'),
-                            backgroundColor: Colors.green,
-                            duration: const Duration(seconds: 3),
-                            behavior: SnackBarBehavior.floating,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                          ),
-                        );
-                      },
+                      onPressed: () => _downloadReceiptAsPdf(context),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF2563EB),
                         foregroundColor: Colors.white,
@@ -211,6 +201,53 @@ class ReceiptPage extends StatelessWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Future<void> _downloadReceiptAsPdf(BuildContext context) async {
+    final pdf = pw.Document();
+
+    pdf.addPage(
+      pw.Page(
+        pageFormat: PdfPageFormat.a4,
+        build: (pw.Context context) {
+          return pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              pw.Text(
+                'Bukti Pembayaran',
+                style: pw.TextStyle(
+                  fontSize: 24,
+                  fontWeight: pw.FontWeight.bold,
+                ),
+              ),
+              pw.SizedBox(height: 16),
+              pw.Text('Nama Tiket: $ticketTitle'),
+              pw.Text('Tipe Tiket: $ticketType'),
+              pw.Text(
+                  'Harga: Rp. ${NumberFormat.currency(locale: 'id_ID', symbol: '', decimalDigits: 0).format(price)}'),
+              pw.SizedBox(height: 16),
+              pw.Text(
+                'Terima kasih telah melakukan pembayaran.',
+                style: pw.TextStyle(fontSize: 16),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+
+    // Save the PDF file locally or share it
+    await Printing.sharePdf(
+      bytes: await pdf.save(),
+      filename: 'Bukti_Pembayaran.pdf',
+    );
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Bukti pembayaran berhasil diunduh!'),
+        backgroundColor: Colors.green,
       ),
     );
   }
